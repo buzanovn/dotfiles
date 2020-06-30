@@ -18,60 +18,65 @@ function echoerr {
   echo "$@" 1>&2; 
 }
 
+APPLY_ANTIGEN=true
+
 function download_antigen { 
   if [[ ! -e $ZSH_ANTIGEN_PATH ]]; then
     local antigen_url="git.io/antigen"
     echo "Antigen not found, installing it from git.io/antigen"
     mkdir -p $(dirname $ZSH_ANTIGEN_PATH)
     if [[ -n "$(command -v curl)" ]]; then 
+      echo "Curl found"
       curl -fsSL $antigen_url > $ZSH_ANTIGEN_PATH
     elif [[ -n "$(command -v wget)" ]]; then 
+      echo "Wget found"
       wget $antigen_url -qO $ZSH_ANTIGEN_PATH
     else
-      echoerr "Neither curl nor wget were found, can not download antigen"
-      exit 1
+      echo "Neither curl nor wget were found, can not download antigen"
+      APPLY_ANTIGEN=false
     fi
   fi
 }
 
-source $ZSH_ANTIGEN_PATH
+download_antigen
+if [[ "$APPLY_ANTIGEN" = true ]]; then
+    source $ZSH_ANTIGEN_PATH
+    antigen use oh-my-zsh
+    antigen theme ${ZSH_THEME}
 
+    antigen bundles <<EOBUNDLES
+    git
+    pip
+    zsh-users/zsh-completions
+    zsh-users/zsh-syntax-highlighting
+    zsh-users/zsh-history-substring-search
+    EOBUNDLES
 
-antigen use oh-my-zsh
-antigen theme ${ZSH_THEME}
+    case $DISTRNAME in 
+      ubuntu) 
+        antigen bundle ubuntu
+        ;;
+      *)
+        ;;
+    esac
+    antigen apply
 
-antigen bundles <<EOBUNDLES
-git
-pip
-zsh-users/zsh-completions
-zsh-users/zsh-syntax-highlighting
-zsh-users/zsh-history-substring-search
-EOBUNDLES
-
-case $DISTRNAME in 
-  ubuntu) 
-    antigen bundle ubuntu
-    ;;
-  *)
-    ;;
-esac
-antigen apply
-
-case "$ZSH_THEME" in 
-    *powerlevel10k)
-    # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-    # Initialization code that may require console input (password prompts, [y/n]
-    # confirmations, etc.) must go above this block; everything else may go below.
-    if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-      source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-    fi
-    # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-    [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-    ;;
-  *spaceship)
-    export SPACESHIP_DOCKER_SHOW=false
-    ;;
-esac
+    case "$ZSH_THEME" in 
+        *powerlevel10k)
+        # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+        # Initialization code that may require console input (password prompts, [y/n]
+        # confirmations, etc.) must go above this block; everything else may go below.
+        if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+          source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+        fi
+        # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+        [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+        ;;
+      *spaceship)
+        export SPACESHIP_DOCKER_SHOW=false
+        ;;
+    esac
+fi
 
 for zshf in $ZSH_D/*.zsh; do
     source $zshf
