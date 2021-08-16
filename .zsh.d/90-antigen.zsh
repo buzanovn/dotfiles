@@ -1,18 +1,16 @@
-function check_antigen {
-  [[ -e $ZSH_ANTIGEN_PATH ]] && return 0 || return 1;
-}
+#!/bin/zsh
 
 function download_antigen { 
   if [[ ! -e $ZSH_ANTIGEN_PATH ]]; then
     local antigen_url="git.io/antigen"
-    echoerr "Antigen not found, installing it from git.io/antigen"
+    echoerr "Error: Antigen not found, installing it from git.io/antigen"
     mkdir -p $(dirname $ZSH_ANTIGEN_PATH)
     if [[ -n "$(command -v curl)" ]]; then 
       curl -fsSL $antigen_url > $ZSH_ANTIGEN_PATH
     elif [[ -n "$(command -v wget)" ]]; then 
       wget $antigen_url -qO $ZSH_ANTIGEN_PATH
     else
-      echoerr "Neither curl nor wget were found, can not download antigen"
+      echoerr "Error: Neither curl nor wget were found, can not download antigen"
       USE_ANTIGEN=false
     fi
   fi

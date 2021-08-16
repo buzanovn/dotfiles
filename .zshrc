@@ -5,7 +5,7 @@ fi
 
 function echoerr { 
   tput setaf 1; 
-  echo "$@"
+  echo "$@" 1>&2;
 }
 
 export DISTRNAME=$(cat /etc/os-release | grep ID | head -n1 | cut -d= -f2)
