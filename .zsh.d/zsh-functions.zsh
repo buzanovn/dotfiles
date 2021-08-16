@@ -1,18 +1,5 @@
 #!/bin/zsh
 
-function toan {
-	cd $AN_PROJECTS
-}
-
-function topy {
-	cd $PY_PROJECTS
-}
-
-function activate() { 
-    export VIRTUAL_ENV_DISABLE_PROMPT='1' 
-    source ~/.venvs/$1/bin/activate 
-} 
-
 function conf() {
     conf_path=~/.config
     case $1 in
@@ -25,13 +12,6 @@ function conf() {
 	vim)     $EDITOR ~/.vimrc ;;
 	*)       echo "Provide one of the options" ;;
     esac
-}
-
-function wine_launch() {
-	c_disk=$HOME/.wine/drive_c
-	case $1 in
-		wow) wine "$c_disk/Program Files (x86)/WoWCircle 3.3.5a/WoW.exe" -opengl
-	esac
 }
 
 function reload() {
@@ -50,16 +30,6 @@ function te() {
 	touch $1
 	e $1
 }
-
-function jbls() {
-	ps_output=$(sudo docker ps | grep jetbrains | cut -c1-12)
-	ip=$(sudo docker inspect $ps_output | grep "IPAddress" | tail -1 | cut -d'"' -f4)
-	address="http://$ip:8000"
-	echo $address
-	echo "Address was copied to clipboard"
-	echo $address | xclip -selection c
-}
-
 
 h=()
 if [[ -r ~/.ssh/config ]]; then
