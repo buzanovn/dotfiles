@@ -1,5 +1,5 @@
 # Default tilix fix for VTE
-if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
+if ( [ $TILIX_ID ] || [ $VTE_VERSION ] ) && [[ -f /etc/profile.d/vte.sh ]]; then
     source /etc/profile.d/vte.sh
 fi
 

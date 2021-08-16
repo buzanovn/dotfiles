@@ -50,8 +50,6 @@ case $DISTRNAME in
   ubuntu) 
     antigen bundle ubuntu
     ;;
-  *)
-    ;;
 esac
 
 antigen apply
