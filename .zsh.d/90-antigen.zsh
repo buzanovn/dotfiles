@@ -31,7 +31,11 @@ fi
 
 source $ZSH_ANTIGEN_PATH
 antigen use oh-my-zsh
-antigen theme ${ZSH_THEME}
+
+if [[ -z "$__THEME_IS_SET" ]] || [[ "$__THEME_IS_SET" != "$ZSH_THEME" ]]; then
+  antigen theme ${ZSH_THEME}
+  export __THEME_IS_SET="${ZSH_THEME}"
+fi
 
 antigen bundles <<EOBUNDLES
   git

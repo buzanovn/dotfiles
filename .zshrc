@@ -16,19 +16,12 @@ export EDITOR=vim
 #############################
 export ZSH_D="$HOME/.zsh.d"
 export ZSH_ANTIGEN_PATH="$ZSH_D/antigen/antigen.zsh"
-function load_zsh_d() {
-  for zshf in $ZSH_D/*.zsh; do 
-    echo "Sourcing $zshf"
-    source $zshf; 
-  done
-}
 
 #### Theme configuration #####
-
-export ZSH_THEME="romkatv/powerlevel10k"
+export ZSH_THEME=ys 
 # Another variants, uncomment to ovveride top declaration
 #export ZSH_THEME="https://github.com/caiogondim/bullet-train-oh-my-zsh-theme bullet-train"
-#export ZSH_THEME=ys 
+#export ZSH_THEME="romkatv/powerlevel10k"
 #export ZSH_THEME="https://github.com/denysdovhan/spaceship-zsh-theme spaceship"
 #export ZSH_THEME=agnoster
 
@@ -36,4 +29,7 @@ export ZSH_THEME="romkatv/powerlevel10k"
 # Loading configuration block ###
 #################################
 APPLY_ANTIGEN=true
-load_zsh_d
+autoload -U compinit && compinit
+for zshf in $ZSH_D/*.zsh; do
+  source $zshf; 
+done
