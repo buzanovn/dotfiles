@@ -9,7 +9,7 @@ function conf() {
 	zsh)     $EDITOR ~/.zshrc ;;
 	termite) $EDITOR $conf_path/$1/config ;;
 	Xres)    $EDITOR ~/.Xresources ;;
-	vim)     $EDITOR ~/.vimrc ;;
+	vim)     $EDITOR ~/.vimrc ;;	
 	*)       echo "Provide one of the options" ;;
     esac
 }
@@ -30,12 +30,3 @@ function te() {
 	touch $1
 	e $1
 }
-
-h=()
-if [[ -r ~/.ssh/config ]]; then
-  h=($h ${${${(@M)${(f)"$(cat ~/.ssh/config)"}:#Host *}#Host }:#*[*?]*})
-fi
-if [[ $#h -gt 0 ]]; then
-  zstyle ':completion:*:ssh:*' hosts $h
-  zstyle ':completion:*:slogin:*' hosts $h
-fi
