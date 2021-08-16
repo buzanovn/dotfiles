@@ -17,7 +17,10 @@ export EDITOR=vim
 export ZSH_D="$HOME/.zsh.d"
 export ZSH_ANTIGEN_PATH="$ZSH_D/antigen/antigen.zsh"
 function load_zsh_d() {
-  for zshf in $ZSH_D/*.zsh; do source $zshf; done
+  for zshf in $ZSH_D/*.zsh; do 
+    echo "Sourcing $zshf"
+    source $zshf; 
+  done
 }
 
 #### Theme configuration #####
