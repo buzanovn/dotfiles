@@ -1,5 +1,25 @@
 #!/bin/zsh
 
+function http_download() {
+  local url="$1"
+  local dest="$2"
+  if [[ -z $dest ]]; then
+    dest=/dev/stdout
+  fi
+  local curl_binary="$(command -v curl)"
+  local wget_binary="$(command -v wget)"
+  if [[ -n $curl_binary ]]; then 
+    $curl_binary -fsSL "$url" > $dest
+  elif [[ -n $wget_binary ]]; then 
+    $wget_binary -qO - "$url" > $dest
+  else
+    echoerr "Error: Neither curl nor wget were found, can not perform download"
+    return 1
+  fi
+  ret=$?
+  return "$ret"
+}
+
 function conf() {
     conf_path=~/.config
     case $1 in

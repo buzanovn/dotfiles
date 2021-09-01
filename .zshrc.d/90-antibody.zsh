@@ -1,31 +1,15 @@
 #!/bin/zsh
 
-function wgecur() {
-  local url="$1"
-  local dest="$2"
-  if [[ -z $dest ]]; then
-    dest=/dev/stdout
-  fi
-  local curl_binary="$(command -v curl)"
-  local wget_binary="$(command -v wget)"
-  if [[ -n $curl_binary ]]; then 
-    $curl_binary -fsSL "$url" > $dest
-  elif [[ -n $wget_binary ]]; then 
-    $wget_binary -qO - "$url" > $dest
-  else
-    echoerr "Error: Neither curl nor wget were found, can not perform download"
-    return 1
-  fi
-  ret=$?
-  return "$ret"
-}
+export ZSH_ANTIBODY_DIR="$ZSH_D/antibody"
+export ZSH_ANTIBODY_PATH="$ZSH_ANTIBODY_DIR/antibody"
+
 
 function download_antibody { 
   if [[ ! -e $ZSH_ANTIBODY_PATH ]]; then
     local url="git.io/antibody"
     echoerr "Error: Antibody not found, installing it from git.io/antigen"
     mkdir -p $(dirname $ZSH_ANTIBODY_PATH)
-    wgecur $url | sh -s - -b $ZSH_ANTIBODY_DIR
+    http_download $url | sh -s - -b $ZSH_ANTIBODY_DIR
     if [[ "$?" -ne 0 ]] ; then
       echoerr "Error: installing antigen failed"
       return 1

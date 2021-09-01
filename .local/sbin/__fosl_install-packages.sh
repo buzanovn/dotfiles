@@ -109,7 +109,7 @@ install_docker_compose() {
 
 	local url="https://github.com/docker/compose/releases/download/$(get_latest_compose_release)/docker-compose-$(uname -s)-$(uname -m)"
 	local binary="/usr/local/bin/docker-compose"
-	wget -qO $binary $url
+	http_download $url > $binary
 	chmod +x $binary
 	ln -s $binary /usr/bin/docker-compose
 }
