@@ -16,7 +16,7 @@ function conf() {
 
 function reload() {
     case $1 in
-        zsh)  source ~/.zshrc ;;
+        zsh)  exec zsh ;;
         Xres) xrdb ~/.Xresources ;;
 		*)    echo "Provide one of the options" ;;
     esac

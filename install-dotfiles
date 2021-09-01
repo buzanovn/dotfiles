@@ -1,0 +1,32 @@
+#!/bin/sh
+IUSER="$1"
+
+if [ -z "$IUSER" ]; then
+    IUSER="$USER"
+fi
+
+if [ -z "$IUSER" ]; then
+    IUSER="root"
+    DEST_FOLDER=/root
+else
+    DEST_FOLDER="/home/$IUSER"
+fi
+
+SCRIPT=$(readlink -f "$0")
+SOURCE_FOLDER=$(dirname "$SCRIPT")
+
+if [ -z "$(command -v zsh)" ]; then
+    echo "Warning: You do not have zsh installed"
+    echo "Use package manager to install zsh and use dotfiles zsh part"
+fi
+
+echo "Installing dotfiles"
+install -v $SOURCE_FOLDER/.zshrc $DEST_FOLDER/.zshrc
+
+install -vd $SOURCE_FOLDER/.zshrc.d $DEST_FOLDER/.zshrc.d
+find $SOURCE_FOLDER/.zshrc.d -name '*.zsh' -type f -exec install -v -m 755 "{}" "$DEST_FOLDER/.zshrc.d" \;
+
+install -v $SOURCE_FOLDER/.vimrc $DEST_FOLDER/.vimrc
+
+install -vd $SOURCE_FOLDER/.local $DEST_FOLDER/.local
+find $SOURCE_FOLDER/.local/sbin -type f -exec install -v -m 755 "{}" "$DEST_FOLDER/.local/sbin" \;

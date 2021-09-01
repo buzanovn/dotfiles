@@ -1,0 +1,217 @@
+import os
+import re
+import shutil
+from functools import partial
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from enum import Enum
+from multiprocessing.pool import ThreadPool
+from pathlib import Path
+from typing import List, NamedTuple
+import subprocess
+
+import requests
+
+FONTS_TO_INSTALL = [
+    "3270",
+    "IBMPlexMono",
+    "CascadiaCode",
+    "VictorMono",
+    "Hack",
+    "RobotoMono",
+    "FantasqueSansMono",
+    "Cousine",
+    "CodeNewRoman",
+    "Inconsolata",
+    "Iosevka"
+]
+
+USER_INSTALL_DIR = f'{os.environ["HOME"]}/.local/share/fonts/nerd-fonts'
+
+
+class FontType(Enum):
+    WINDOWS = 0
+    ANY = 1
+    ANY_MONO = 2
+
+
+class FontExt(Enum):
+    TTF = 'ttf'
+    OTF = 'otf'
+    ANY = 'ttf|otf'
+
+
+class FontCollectionParams(NamedTuple):
+    type: FontType
+    ext: FontExt
+
+def download_file(url: str, path: str):
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=None): 
+                f.write(chunk)
+    return path
+
+
+def name_to_type_matcher(fname: str, p: FontCollectionParams) -> bool:
+    regex_template = ".*/complete/[A-Za-z0-9\s\-\_]+{}.(otf|ttf)$"
+    if p.type == FontType.WINDOWS:
+        regex = regex_template.format('Nerd Font Complete Mono Windows Compatible')
+    elif p.type == FontType.ANY:
+        regex = regex_template.format('Nerd Font Complete')
+    else:
+        regex = regex_template.format('Nerd Font Complete Mono')
+    if (m := re.match(regex, fname)) is not None:
+        if (m_ext := m.groups(0)) is not None:
+            return m_ext[0] == p.ext.value
+    return False
+
+
+class FontInstallerBackend(ABC):
+    TMP_DIR = Path('/tmp/nerd-font-downloader')
+
+    _font_collection_params: FontCollectionParams
+
+    def __init__(
+        self, 
+        font_collection_params: FontCollectionParams,
+    ):
+        self._font_collection_params = font_collection_params
+    
+    @contextmanager
+    def work_with_tmp_dir(self):
+        try:
+            self.TMP_DIR.mkdir(exit_ok=True)
+            yield 
+        finally:
+            pass
+            shutil.rmtree(self.TMP_DIR)
+
+    def install_font_file(self, font_file_path: Path, install_dir: Path):
+        shutil.copy(font_file_path, install_dir / font_file_path.name)
+
+    def install_font_dir(self, font_name: str, font_file_paths: List[Path], install_dir: Path):
+        install_dir = install_dir / font_name
+        install_dir.mkdir(parents=True, exist_ok=True)
+        for p in font_file_paths:
+            self.install_font_file(p, install_dir)
+    
+    @abstractmethod
+    def install_font(self, font_name: str, install_dir: Path):
+        pass
+
+    def install_fonts(self, font_name_list: List[str], install_dir: Path):
+        with ThreadPool(16) as pool:
+            with self.work_with_tmp_dir():
+                pool.map(partial(self.install_font, install_dir=install_dir), font_name_list)
+
+class CachedRepoFilesList:
+    def __init__(self, url: str):
+        self._url = url
+        self._cache = None
+    
+    def get(self):
+        if self._cache is None:
+            self._fetch_list()
+        return self._cache
+
+    def _fetch_list(self):
+        self._cache = requests.get(self._url).json()['tree']
+
+class GithubInstallerBackend(FontInstallerBackend):
+    NERD_FONT_GITHUB_API_URL = "https://api.github.com/repos/ryanoasis/nerd-fonts/git/trees/HEAD?recursive=1"
+
+    def __init__(self, font_collection_params: FontCollectionParams):
+        super().__init__(font_collection_params)
+        self._cached_repo_files_list = CachedRepoFilesList(self.NERD_FONT_GITHUB_API_URL)
+
+    def __fetch_font_obj(self, font_name, font_obj) -> Path:
+        file_name = os.path.basename(font_obj.get('path'))
+        font_dir_path = self.TMP_DIR / font_name
+        font_dir_path.mkdir(parents=True, exist_ok=True)
+        file_path = font_dir_path / file_name
+        download_file(font_obj.get('url'), file_path)
+        return file_path 
+
+    def __filter_repo_files_list(self, font_name, repo_files_list):
+        for font_obj in repo_files_list:
+            path = font_obj.get('path')
+            if path.startswith(f'patched-fonts/{font_name}'):
+                if name_to_type_matcher(path, self._font_collection_params):
+                    print(font_obj)
+                    yield font_obj  
+    
+    def install_font(self, font_name: str, install_dir: Path):
+        repo_files_list = self._cached_repo_files_list.get()
+        paths = []
+        for font_obj in self.__filter_repo_files_list(font_name, repo_files_list):
+            path = self.__fetch_font_obj(font_name, font_obj)
+            paths.append(path)
+        self.install_font_dir(font_name, paths, install_dir)  
+
+
+class SVNInstallerBackend(FontInstallerBackend):
+    NERD_FONT_URL_TEMPLATE = "https://github.com/ryanoasis/nerd-fonts/trunk/patched-fonts/{font_name}"
+
+    def __init__(self, font_collection_params: FontCollectionParams):
+        super().__init__(font_collection_params)
+
+    def construct_url(self, font_name: str) -> str:
+        return self.NERD_FONT_URL_TEMPLATE.format(font_name=font_name)
+
+    def find_fonts(self, dir_path):
+        def __filter(p: Path):
+            if not p.is_file() or '.svn' in p.parts:
+                return False
+            path_to_match = p.relative_to(dir_path.parent)
+            return name_to_type_matcher(str(path_to_match), self._font_collection_params)
+
+        for f in filter(__filter, dir_path.rglob("**/*")):
+            yield f
+
+    def process_checkouted_dir(self, font_name: str, dir_path: Path, install_dir: Path):
+        font_file_paths = list(set(self.find_fonts(dir_path)))
+        self.install_font_dir(font_name, font_file_paths, install_dir)
+
+    @contextmanager
+    def checkout_dir(self, github_url: str, dir_name: str) -> Path:
+        tmp_path = Path(os.path.join(self.TMP_DIR, dir_name))
+        p = subprocess.Popen(["svn", "checkout", github_url, tmp_path], stdout=subprocess.DEVNULL)
+        p.wait()
+        try:
+            yield tmp_path
+        finally:
+            shutil.rmtree(tmp_path)
+            pass
+
+    def install_font(self, font_name: str, install_dir: Path):
+        url = self.construct_url(font_name)
+        with self.checkout_dir(url, font_name) as dir_path:
+            self.process_checkouted_dir(font_name, dir_path, install_dir)
+
+
+class FontInstaller:
+    def __init__(
+        self,
+        installer_backend: FontInstallerBackend,
+        font_name_list: List[str],
+        install_dir: Path
+    ):
+        self._font_name_list = font_name_list
+        self._install_dir = install_dir
+        self._installer_backend = installer_backend
+
+    def do_install(self):
+        self._installer_backend.install_fonts(self._font_name_list, self._install_dir)
+
+
+def main():
+    font_collection_params = FontCollectionParams(FontType.ANY_MONO, FontExt.TTF)
+    backend = SVNInstallerBackend(font_collection_params)
+    fi = FontInstaller(backend, FONTS_TO_INSTALL,Path(USER_INSTALL_DIR))
+    fi.do_install()
+
+
+if __name__ == '__main__':
+    main()
