@@ -20,13 +20,36 @@ if [ -z "$(command -v zsh)" ]; then
     echo "Use package manager to install zsh and use dotfiles zsh part"
 fi
 
+install_file() {
+    local f="$1"
+    local m="$2"
+    if [ -z "$m" ]; then
+        m='755'
+    fi
+    local src="$SOURCE_FOLDER/$f"
+    local dst="$DEST_FOLDER/$f"
+    install -v -m $m $src $dst
+}
+
+install_dir() {
+    local d="$1"
+    local src="$SOURCE_FOLDER/$d"
+    local dst="$DEST_FOLDER/$d"
+    local ff=""
+    install -vd $src $dst
+    for f in $src/*; do
+        ff=$(echo $f | sed "s#$SOURCE_FOLDER##g")
+        if [ -f $f ]; then
+            install_file $ff
+        elif [ -d $f ]; then
+            install_dir $ff
+        fi
+    done
+}
+
 echo "Installing dotfiles"
-install -v $SOURCE_FOLDER/.zshrc $DEST_FOLDER/.zshrc
 
-install -vd $SOURCE_FOLDER/.zshrc.d $DEST_FOLDER/.zshrc.d
-find $SOURCE_FOLDER/.zshrc.d -name '*.zsh' -type f -exec install -v -m 755 "{}" "$DEST_FOLDER/.zshrc.d" \;
-
-install -v $SOURCE_FOLDER/.vimrc $DEST_FOLDER/.vimrc
-
-install -vd $SOURCE_FOLDER/.local $DEST_FOLDER/.local
-find $SOURCE_FOLDER/.local/sbin -type f -exec install -v -m 755 "{}" "$DEST_FOLDER/.local/sbin" \;
+install_file .zshrc
+install_dir .zshrc.d
+install_file .vimrc
+install_dir .local
