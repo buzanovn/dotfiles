@@ -45,10 +45,17 @@ add_pubkey() {
 	wget -qO - "$key_url" | apt-key add -
 }
 
+path_to_gpg() {
+	local gpg_name="$1"
+	echo "/etc/apt/trusted.gpg.d/${gpg_name}.gpg"
+}
+
 add_gpgkey() {
 	local gpg_key_url="$1"
 	local gpg_key_name="$2"
-	http_download "$gpg_key_url" | gpg --dearmor | dd of="/etc/apt/trusted.gpg.d/${gpg_key_name}.gpg"
+	local gpg_key_path="$(path_to_gpg $gpg_key_name)"
+	http_download "$gpg_key_url" | gpg --dearmor | dd of="$gpg_key_path"
+	echo $gpg_key_path
 }
 
 install_deb() {
@@ -79,8 +86,8 @@ add_spotify_repo() {
 
 add_docker_repo() {
 	install_packages apt-transport-https ca-certificates gnupg lsb-release
-	add_gpgkey 'https://download.docker.com/linux/ubuntu/gpg'
-	add_repo_list "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME} stable" docker
+	gpg_key_path=$(add_gpgkey 'https://download.docker.com/linux/ubuntu/gpg' docker)
+	add_repo_list "deb [arch=amd64 signed-by=$gpg_key_path] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME} stable" docker
 	PACKAGES="$PACKAGES docker-ce docker-ce-cli containerd.io"
 }
 
@@ -130,6 +137,7 @@ install_packages() {
 add_vscodium_repo
 add_chrome_repo
 add_spotify_repo
+add_docker_repo
 
 install_packages "$PACKAGES"
 additional_install_hooks
