@@ -85,9 +85,11 @@ while IFS= read -r line; do
 done <<<"$OH_MY_ZSH_PLUGINS"
 
 case $DISTRNAME in 
-  (ubuntu)
-  (elementary)
+  ubuntu|elementary)
     add_omz_plugin_to_list ubuntu
+    ;;
+  *)
+    return
     ;;
 esac
 
