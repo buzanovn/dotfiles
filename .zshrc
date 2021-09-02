@@ -8,9 +8,10 @@ export EDITOR=vim
 export ZSH_D="/home/$USER/.zshrc.d"
 
 #### Theme configuration #####
+export ZSH_THEME=ys
 # export ZSH_THEME=agnoster/agnoster-zsh-theme
 # export ZSH_THEME=caiogondim/bullet-train-oh-my-zsh-theme
-export ZSH_THEME=romkatv/powerlevel10k
+# export ZSH_THEME=romkatv/powerlevel10k
 # export ZSH_THEME=denysdovhan/spaceship-zsh-theme
 
 #################################
