@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import re
 import shutil
@@ -82,7 +84,7 @@ class FontInstallerBackend(ABC):
     @contextmanager
     def work_with_tmp_dir(self):
         try:
-            self.TMP_DIR.mkdir(exit_ok=True)
+            self.TMP_DIR.mkdir(exist_ok=True)
             yield 
         finally:
             pass

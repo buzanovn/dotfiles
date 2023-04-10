@@ -2,7 +2,7 @@
 
 export ZSH_ANTIBODY_DIR="$ZSH_D/antibody"
 export ZSH_ANTIBODY_PATH="$ZSH_ANTIBODY_DIR/antibody"
-
+DISTR_ID="$(grep -E '^ID=' /etc/os-release | cut -d= -f2)"
 
 function download_antibody { 
   if [[ ! -e $ZSH_ANTIBODY_PATH ]]; then
@@ -84,12 +84,9 @@ while IFS= read -r line; do
   add_omz_plugin_to_list $line
 done <<<"$OH_MY_ZSH_PLUGINS"
 
-case $DISTRNAME in 
+case "$DISTR_ID" in
   ubuntu|elementary)
     add_omz_plugin_to_list ubuntu
-    ;;
-  *)
-    return
     ;;
 esac
 

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [ "$EUID" -ne 0 ];then 
+if [ "$EUID" -ne 0 ];then
   echo "Please run as root"
   exit
 fi
 
-PACKAGES="zsh ncdu mc vim git gdebi tilix nmap tmux"
+PACKAGES="zsh ncdu mc vim git gdebi tilix nmap tmux make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev"
 
 APT_UPDATE="apt update -yqq"
 APT_INSTALL="apt install -yqq"
@@ -28,9 +28,9 @@ http_download() {
   fi
   local curl_binary="$(command -v curl)"
   local wget_binary="$(command -v wget)"
-  if [[ -n $curl_binary ]]; then 
+  if [[ -n $curl_binary ]]; then
     $curl_binary -fsSL "$url" > $dest
-  elif [[ -n $wget_binary ]]; then 
+  elif [[ -n $wget_binary ]]; then
     $wget_binary -qO - "$url" > $dest
   else
     echo "Error: Neither curl nor wget were found, can not perform download"
@@ -108,6 +108,7 @@ afterinstall_docker() {
 	fi
 }
 
+# This is deprecated due to Docker v2 already has docker-compose built in as binary
 install_docker_compose() {
 	get_latest_compose_release() {
 		url="https://api.github.com/repos/docker/compose/releases/latest"
@@ -121,11 +122,18 @@ install_docker_compose() {
 	ln -s $binary /usr/bin/docker-compose
 }
 
+install_pyenv() {
+    http_download https://pyenv.run | bash
+}
+
+add_node_repo() {
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash
+    PACKAGES="$PACKAGES nodejs"
+}
+
+
 additional_install_hooks() {
-	install_discord
-	install_teamviewer
 	afterinstall_docker
-	install_docker_compose
 }
 
 install_packages() {
@@ -134,10 +142,14 @@ install_packages() {
 	$APT_INSTALL $@
 }
 
-add_vscodium_repo
-add_chrome_repo
-add_spotify_repo
-add_docker_repo
+add_development_packages() {
+    add_docker_repo
+    add_node_repo
+    add_yarn_repo
+}
 
+add_chrome_repo
+add_development_packages
 install_packages "$PACKAGES"
+install_pyenv
 additional_install_hooks
