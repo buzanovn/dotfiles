@@ -1,0 +1,48 @@
+#!/bin/zsh
+
+function start_profiling() {
+  local profiling_enabled="${1:-0}"
+  [[ "$profiling_enabled" -ne 0 ]] && zmodload zsh/zprof
+}
+
+function end_profiling() {
+  local profiling_enabled="${1:-0}"
+  [[ "$profiling_enabled" -ne 0 ]] && zprof;
+}
+
+ZSH_SESSION_ID="$(date +%s%3N)"
+ZSH_LOGS_PATH="/home/${USER}/.zshlogs"
+ZSH_SESSION_LOG_FILE="${ZSH_LOGS_PATH}/${ZSH_SESSION_ID}.log"
+
+function _zsh_log() {
+  if [[ ! -d "${ZSH_LOGS_PATH}" ]]; then
+    mkdir -p "${ZSH_LOGS_PATH}"
+  fi
+
+  if [[ -n "$LOGGING_ENABLED" ]]; then
+    local logstr
+    logstr="[${ZSH_SESSION_ID}] [$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo "$logstr" >> "$ZSH_SESSION_LOG_FILE"
+    echo "$logstr"
+  fi
+}
+
+function echoerr() { 
+  tput setaf 1; 
+  { _zsh_log "$@"; } >&2
+}
+
+function echolog() {
+  { _zsh_log "$@"; } >&1
+}
+
+function echologvar() {
+  local varname="$1"
+  _zsh_log "${varname} = ${(P)varname}"
+}
+
+function showlog() {
+    if [[ -f "$ZSH_SESSION_LOG_FILE" ]]; then 
+        cat "$ZSH_SESSION_LOG_FILE" | less
+    fi
+}

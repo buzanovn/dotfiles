@@ -1,0 +1,45 @@
+#!/bin/zsh
+
+_USER="${USER:-root}"
+_HOME_DIR="$(getent passwd "$_USER" | cut -d: -f6)"
+
+if [[ -f "${_HOME_DIR}/.zshrc-before" ]]; then
+  source "${_HOME_DIR}/.zshrc-before"
+fi
+
+# export PROFILING_ENABLED=1
+# export LOGGING_ENABLED=1
+
+start_profiling $PROFILING_ENABLED
+
+export DISTRNAME=$(cat /etc/os-release | grep -E '^ID' | head -n1 | cut -d= -f2)
+export EDITOR=vim
+
+#############################
+# ZSH.D Configuration block #
+#############################
+
+#### Theme configuration #####
+# export ZSH_NATIVE_THEME=ys
+# export ZSH_THEME_PLUGIN=agnoster/agnoster-zsh-theme
+# export ZSH_THEME_PLUGIN=caiogondim/bullet-train-oh-my-zsh-theme
+export ZSH_THEME_PLUGIN=romkatv/powerlevel10k
+# export ZSH_THEME_PLUGIN=denysdovhan/spaceship-zsh-theme
+# export ZSH_THEME_PLUGIN=spaceship-prompt/spaceship-prompt
+
+#################################
+# Loading configuration block ###
+#################################
+export ZSH_D="${_HOME_DIR}/.zshrc.d"
+ZSH_D_SCRIPTS=$(find -L "$ZSH_D" -maxdepth 1 -name '*.zsh' -type f | sort)
+while IFS= read -r line; do
+  source $line
+done <<<"$ZSH_D_SCRIPTS"
+
+autoload -Uz compinit
+compinit -C -d ~/.cache/zsh/zcompdump-$HOST
+
+end_profiling $PROFILING_ENABLED
+
+unset -f start_profiling
+unset -f end_profiling

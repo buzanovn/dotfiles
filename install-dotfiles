@@ -1,17 +1,8 @@
-#!/bin/sh
-IUSER="$1"
+#!/bin/zsh
 
-if [ -z "$IUSER" ]; then
-    IUSER="$USER"
-fi
-
-if [ -z "$IUSER" ]; then
-    IUSER="root"
-    DEST_FOLDER=/root
-else
-    DEST_FOLDER="/home/$IUSER"
-fi
-
+DRY_RUN="${DRY_RUN:-0}"
+IUSER="${1:-${USER:-root}}"
+HOME_DIR="$(getent passwd "$IUSER" | cut -d: -f6)"
 SCRIPT=$(readlink -f "$0")
 SOURCE_FOLDER=$(dirname "$SCRIPT")
 
@@ -20,36 +11,85 @@ if [ -z "$(command -v zsh)" ]; then
     echo "Use package manager to install zsh and use dotfiles zsh part"
 fi
 
-install_file() {
-    local f="$1"
-    local m="$2"
-    if [ -z "$m" ]; then
-        m='755'
+do_install() {
+    local exit_code=0
+    local installable_name="$1"
+    local source_file="$(realpath "${installable_name}")"
+    local source_file_relative_to_source_dir="$(realpath --relative-to $SOURCE_FOLDER $source_file)"
+    local destination_file="$(realpath "${HOME_DIR}/${source_file_relative_to_source_dir/%.symlink/}")"
+
+    echo "Linking '$source_file' to '$destination_file'"
+
+    if [[ "$DRY_RUN" -eq 0 ]]; then
+        ln -s "$source_file" "$destination_file"
+        exit_code="$?"
+        printf "%s\n" "$destination_file" >>"$DOTFILES_INSTALLED_FILE_PATH"
     fi
-    local src="$SOURCE_FOLDER/$f"
-    local dst="$DEST_FOLDER/$f"
-    install -v -m $m $src $dst
+
+    return $exit_code
 }
 
-install_dir() {
-    local d="$1"
-    local src="$SOURCE_FOLDER/$d"
-    local dst="$DEST_FOLDER/$d"
-    local ff=""
-    install -vd $src $dst
-    for f in $src/*; do
-        ff=$(echo $f | sed "s#$SOURCE_FOLDER##g")
-        if [ -f $f ]; then
-            install_file $ff
-        elif [ -d $f ]; then
-            install_dir $ff
+set -o no_unset
+# set -o xtrace
+
+DOTFILES_CONFIG_DIR="$HOME_DIR/.config/dotfiles"
+mkdir -p "$DOTFILES_CONFIG_DIR"
+DOTFILES_UNINSTALL_DOTFILES_SCRIPT_PATH="${DOTFILES_CONFIG_DIR}/uninstall_dotfiles.sh"
+DOTFILES_INSTALLED_FILE_PATH="${DOTFILES_CONFIG_DIR}/installed"
+
+function _call_uninstall_dotfiles() {
+    if [[ -f "$DOTFILES_UNINSTALL_DOTFILES_SCRIPT_PATH" ]]; then
+        source "$DOTFILES_UNINSTALL_DOTFILES_SCRIPT_PATH"
+        if ! uninstall_dotfiles; then
+            echo "Warning: something went wrong when uninstalling dotfiles"
         fi
-    done
+    fi
 }
 
-echo "Installing dotfiles"
+if [[ -f "$DOTFILES_INSTALLED_FILE_PATH" ]]; then
+    echo "Warning: You already have dotfiles installed"
+    read -r "perform_reinstall?Perform uninstall and install? (Y/N) " || perform_reinstall="y"
+    if [[ $perform_reinstall != [Yy] && $perform_reinstall != [Yy][Ee][Ss] ]]; then
+        echo "You answered '${perform_reinstall}', exiting..."
+        exit 0
+    fi
+    _call_uninstall_dotfiles
+fi
 
-install_file .zshrc
-install_dir .zshrc.d
-install_file .vimrc
-install_dir .local
+cat >"${DOTFILES_UNINSTALL_DOTFILES_SCRIPT_PATH}" <<END
+#!/bin/zsh
+function uninstall_dotfiles() {
+    if [[ -f ${DOTFILES_INSTALLED_FILE_PATH} ]]; then
+        for installable in \$(cat "${DOTFILES_INSTALLED_FILE_PATH}"); do
+            if [ -L \$installable ]; then
+                echo "Unlinking installed file from '\$installable'"
+                unlink \$installable;
+            fi
+        done
+        rm ${DOTFILES_INSTALLED_FILE_PATH}
+        return 0
+    fi
+    return 1
+}
+END
+
+touch "$DOTFILES_INSTALLED_FILE_PATH"
+
+echo "Installing dotfiles for user $IUSER into $HOME_DIR"
+
+local needs_reverting=0
+
+while IFS= read -r -d '' installable; do
+    if ! do_install "$installable"; then
+        needs_reverting=1
+        printf "Installation of file $installable failed, reverting..."
+        break
+    fi
+done < <(find "$SOURCE_FOLDER" -maxdepth 1 -name '*.symlink' -print0)
+
+if [[ $needs_reverting -ne 0 ]]; then
+    _call_uninstall_dotfiles
+fi
+
+set +o unset
+set +o xtrace

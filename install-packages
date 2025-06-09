@@ -78,27 +78,11 @@ add_chrome_repo() {
 	PACKAGES="$PACKAGES google-chrome-stable"
 }
 
-add_spotify_repo() {
-	add_pubkey 'https://download.spotify.com/debian/pubkey_0D811D58.gpg'
-	add_repo_list 'deb http://repository.spotify.com stable non-free' spotify
-	PACKAGES="$PACKAGES spotify-client"
-}
-
 add_docker_repo() {
 	install_packages apt-transport-https ca-certificates gnupg lsb-release
 	gpg_key_path=$(add_gpgkey 'https://download.docker.com/linux/ubuntu/gpg' docker)
 	add_repo_list "deb [arch=amd64 signed-by=$gpg_key_path] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME} stable" docker
 	PACKAGES="$PACKAGES docker-ce docker-ce-cli containerd.io"
-}
-
-install_discord() {
-	echo "Installing Discord"
-	install_deb 'https://discordapp.com/api/download?platform=linux&format=deb'
-}
-
-install_teamviewer() {
-	echo "Installing Teamviewer"
-	install_deb 'https://download.teamviewer.com/download/linux/teamviewer_amd64.deb'
 }
 
 afterinstall_docker() {
@@ -108,26 +92,8 @@ afterinstall_docker() {
 	fi
 }
 
-# This is deprecated due to Docker v2 already has docker-compose built in as binary
-install_docker_compose() {
-	get_latest_compose_release() {
-		url="https://api.github.com/repos/docker/compose/releases/latest"
-		echo "$(wget -qO- $url | grep -Po '"tag_name": "\K.*?(?=")')"
-	}
-
-	local url="https://github.com/docker/compose/releases/download/$(get_latest_compose_release)/docker-compose-$(uname -s)-$(uname -m)"
-	local binary="/usr/local/bin/docker-compose"
-	http_download $url > $binary
-	chmod +x $binary
-	ln -s $binary /usr/bin/docker-compose
-}
-
-install_pyenv() {
-    http_download https://pyenv.run | bash
-}
-
 add_node_repo() {
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash
     PACKAGES="$PACKAGES nodejs"
 }
 
@@ -151,5 +117,4 @@ add_development_packages() {
 add_chrome_repo
 add_development_packages
 install_packages "$PACKAGES"
-install_pyenv
 additional_install_hooks
