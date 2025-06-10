@@ -38,7 +38,6 @@ function download_antidote {
 SOURCES=()
 
 PLUGINS=()
-PLUGINS+=("rupa/z")
 PLUGINS+=("romkatv/zsh-defer")
 PLUGINS+=("greymd/docker-zsh-completion")
 
