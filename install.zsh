@@ -7,9 +7,11 @@ if [[ ! -e "$DOTFILES_DIR" ]]; then
     mkdir -p "$(dirname "$DOTFILES_DIR")"
     git clone --depth=1 https://github.com/buzanovn/dotfiles.git "$DOTFILES_DIR"
 else
-    read -r "perform_update?dotfiles directory already exists, do you want to pull changes from the remote? (Y/N) " || perform_update="y"
-    if [[ $perform_update != [Yy] && $perform_update != [Yy][Ee][Ss] ]]; then
-        echo "You answered '${perform_update}', exiting..."
+    default_response='Y'
+    read -r "response?dotfiles directory already exists, do you want to pull changes from the remote? [Y/n]"
+    response=${response:-$default_response}
+    if [[ $response != [Yy] && $response != [Yy][Ee][Ss] ]]; then
+        echo "You answered '${response}', exiting..."
         exit 0
     fi
     git -C "$DOTFILES_DIR" pull

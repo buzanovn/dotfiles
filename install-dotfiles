@@ -48,9 +48,11 @@ function _call_uninstall_dotfiles() {
 
 if [[ -f "$DOTFILES_INSTALLED_FILE_PATH" ]]; then
     echo "Warning: You already have dotfiles installed"
-    read -r "perform_reinstall?Perform uninstall and install? (Y/N) " || perform_reinstall="y"
-    if [[ $perform_reinstall != [Yy] && $perform_reinstall != [Yy][Ee][Ss] ]]; then
-        echo "You answered '${perform_reinstall}', exiting..."
+    default_response='Y'
+    read -r "response?Perform uninstall and install? [Y/n]"
+    response=${response:-$default_response}
+    if [[ $response != [Yy] && $response != [Yy][Ee][Ss] ]]; then
+        echo "You answered '${response}', exiting..."
         exit 0
     fi
     _call_uninstall_dotfiles
