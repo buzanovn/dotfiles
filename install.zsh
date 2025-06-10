@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 _HOME_DIR="$(getent passwd "$USER" | cut -d: -f6)"
 DOTFILES_DIR="${_HOME_DIR}/.dotfiles"
